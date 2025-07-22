@@ -39,7 +39,7 @@ SPDX-License-Identifier: MIT
 
 #define SONIDO_TIMER     TIMER2
 #define SONIDO_TIMER_CLK RCU_TIMER2
-#define SONIDO_TRIGGER   TIMER_SMCFG_TRGSEL_ITI2
+#define SONIDO_TRIGGER   TIMER_SMCFG_TRGSEL_ITI0
 #define SONIDO_DIVIDER   4
 
 #define SONIDO_GPIO_PORT GPIOC
@@ -103,6 +103,25 @@ const sonido_nota_t ESCALA[] = {
     {SONIDO_SILENCIO, 0}, // Final de la canción
 };
 
+const sonido_nota_t QUINTA[] = {
+    {SONIDO_MI_6, SONIDO_NEGRA},
+    {SONIDO_SILENCIO, SONIDO_SEMICORCHEA},
+    {SONIDO_MI_6, SONIDO_NEGRA},
+    {SONIDO_SILENCIO, SONIDO_SEMICORCHEA},
+    {SONIDO_MI_6, SONIDO_NEGRA},
+    {SONIDO_SILENCIO, SONIDO_SEMICORCHEA},
+    {SONIDO_DO_5, SONIDO_BLANCA + SONIDO_NEGRA},
+    {SONIDO_SILENCIO, SONIDO_NEGRA},
+    {SONIDO_RE_6, SONIDO_NEGRA},
+    {SONIDO_SILENCIO, SONIDO_SEMICORCHEA},
+    {SONIDO_RE_6, SONIDO_NEGRA},
+    {SONIDO_SILENCIO, SONIDO_SEMICORCHEA},
+    {SONIDO_RE_6, SONIDO_NEGRA},
+    {SONIDO_SILENCIO, SONIDO_SEMICORCHEA},
+    {SONIDO_SI_5, SONIDO_BLANCA + SONIDO_NEGRA},
+    {SONIDO_SILENCIO, 0}, // Final de la canción
+};
+
 /* === Private variable definitions ============================================================ */
 
 static const sonido_nota_t * current_note = NULL;
@@ -138,8 +157,8 @@ void SonidoInit(void) {
     timer_init(SONIDO_TIMER, &timer_config);
 
     timer_input_trigger_source_select(SONIDO_TIMER, SONIDO_TRIGGER);
-    // timer_slave_mode_select(SONIDO_TIMER, TIMER_SLAVE_MODE_PAUSE);
-    // timer_master_slave_mode_config(SONIDO_TIMER, TIMER_MASTER_SLAVE_MODE_ENABLE);
+    timer_slave_mode_select(SONIDO_TIMER, TIMER_SLAVE_MODE_PAUSE);
+    timer_master_slave_mode_config(SONIDO_TIMER, TIMER_MASTER_SLAVE_MODE_ENABLE);
 
     /* channels configuration in PWM mode */
     timer_channel_output_struct_para_init(&channel_config);
@@ -193,16 +212,14 @@ void SonidoPlayNote(uint32_t frequency, uint32_t duration) {
 }
 
 void SonidoPlayMelody(const sonido_nota_t * melody) {
-    ECLIC_Register_IRQ(TIEMPO_IRQ_NUM, ECLIC_VECTOR_INTERRUPT, ECLIC_LEVEL_TRIGGER, 1, 1, TiempoIRQHandler);
+    // ECLIC_Register_IRQ(TIEMPO_IRQ_NUM, ECLIC_VECTOR_INTERRUPT, ECLIC_POSTIVE_EDGE_TRIGGER, 2, 0,
+    //                    (void *)TiempoIRQHandler);
 
-    // eclic_mode_enable();
-
-    // eclic_clear_pending(TIEMPO_IRQ_NUM);
-    ECLIC_ClearPendingIRQ(TIEMPO_IRQ_NUM);
-    ECLIC_EnableIRQ(TIEMPO_IRQ_NUM);
-    // ECLIC_SetLevelIRQ(TIEMPO_IRQ_NUM, 1);
-    // ECLIC_SetPriorityIRQ(TIEMPO_IRQ_NUM, 1);
-    // eclic_irq_enable(TIEMPO_IRQ_NUM, 1, 1);
+    eclic_mode_enable();
+    // ECLIC_ClearPendingIRQ(TIEMPO_IRQ_NUM);
+    eclic_clear_pending(TIEMPO_IRQ_NUM);
+    // ECLIC_EnableIRQ(TIEMPO_IRQ_NUM);
+    eclic_irq_enable(TIEMPO_IRQ_NUM, 1, 1);
     // __enable_irq();
     eclic_global_interrupt_enable();
 

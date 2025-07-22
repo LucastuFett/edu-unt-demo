@@ -31,125 +31,17 @@ SPDX-License-Identifier: MIT
 
 /* === Headers files inclusions =============================================================== */
 
-#include "board.h"
-#include "rgb.h"
-#include "teclas.h"
-#include "pantalla.h"
-#include "encoder.h"
-#include "sonido.h"
+#include "bsp.h"
+#include "systick.h"
+#include "lcd.h"
+#include "gd32v_tf_card_if.h"
+#include "rtc.h"
+
 #include <stddef.h>
+#include <stdio.h>
+#include <string.h>
 
 /* === Macros definitions ====================================================================== */
-
-// Definiciones de los recursos asociados a los DIGITs de la pantalla
-#define DIGIT_1_BIT    8
-#define DIGIT_1_MASK   (1 << DIGIT_1_BIT)
-
-#define DIGIT_2_BIT    9
-#define DIGIT_2_MASK   (1 << DIGIT_2_BIT)
-
-#define DIGIT_3_BIT    10
-#define DIGIT_3_MASK   (1 << DIGIT_3_BIT)
-
-#define DIGIT_4_BIT    11
-#define DIGIT_4_MASK   (1 << DIGIT_4_BIT)
-
-#define DIGITS_GPIO    GPIOC
-#define DIGITS_CLK     RCU_GPIOC
-#define DIGITS_MASK    (DIGIT_1_MASK | DIGIT_2_MASK | DIGIT_3_MASK | DIGIT_4_MASK)
-
-// Definiciones de los recursos asociados a los SEGMENTs de la pantalla
-
-#define SEGMENT_A_BIT  0
-#define SEGMENT_A_MASK (1 << SEGMENT_A_BIT)
-
-#define SEGMENT_B_BIT  1
-#define SEGMENT_B_MASK (1 << SEGMENT_B_BIT)
-
-#define SEGMENT_C_BIT  2
-#define SEGMENT_C_MASK (1 << SEGMENT_C_BIT)
-
-#define SEGMENT_D_BIT  3
-#define SEGMENT_D_MASK (1 << SEGMENT_D_BIT)
-
-#define SEGMENT_E_BIT  4
-#define SEGMENT_E_MASK (1 << SEGMENT_E_BIT)
-
-#define SEGMENT_F_BIT  5
-#define SEGMENT_F_MASK (1 << SEGMENT_F_BIT)
-
-#define SEGMENT_G_BIT  6
-#define SEGMENT_G_MASK (1 << SEGMENT_G_BIT)
-
-#define SEGMENTS_GPIO  GPIOC
-#define SEGMENTS_CLK   RCU_GPIOC
-#define SEGMENTS_MASK                                                                                                  \
-    (SEGMENT_A_MASK | SEGMENT_B_MASK | SEGMENT_C_MASK | SEGMENT_D_MASK | SEGMENT_E_MASK | SEGMENT_F_MASK |             \
-     SEGMENT_G_MASK)
-
-#define SEGMENT_DOT_BIT  13
-#define SEGMENT_DOT_MASK (1 << SEGMENT_DOT_BIT)
-#define SEGMENT_DOT_GPIO GPIOC
-#define SEGMENT_DOT_CLK  RCU_GPIOC
-
-/* --- GPIO Direct Functions Keyboard ----------------------------------------------------------- */
-
-#define KEY_ACEPT_BIT    10
-#define KEY_ACEPT_MASK   (1 << KEY_ACEPT_BIT)
-
-#define KEY_CANCEL_BIT   11
-#define KEY_CANCEL_MASK  (1 << KEY_CANCEL_BIT)
-
-#define KEY_F1_BIT       12
-#define KEY_F1_MASK      (1 << KEY_F1_BIT)
-
-#define KEY_F2_BIT       13
-#define KEY_F2_MASK      (1 << KEY_F2_BIT)
-
-#define KEY_F3_BIT       14
-#define KEY_F3_MASK      (1 << KEY_F3_BIT)
-
-#define KEY_F4_BIT       15
-#define KEY_F4_MASK      (1 << KEY_F4_BIT)
-
-#define KEYS_GPIO        GPIOB
-#define KEYS_CLK         RCU_GPIOB
-#define KEYS_MASK        (KEY_ACEPT_MASK | KEY_CANCEL_MASK | KEY_F1_MASK | KEY_F2_MASK | KEY_F3_MASK | KEY_F4_MASK)
-
-/* --- Matrix Numbers Keyboard ----------------------------------------------------------------- */
-
-#define NUMS_R1_BIT      9
-#define NUMS_R1_MASK     (1 << NUMS_R1_BIT)
-
-#define NUMS_R2_BIT      10
-#define NUMS_R2_MASK     (1 << NUMS_R2_BIT)
-
-#define NUMS_R3_BIT      11
-#define NUMS_R3_MASK     (1 << NUMS_R3_BIT)
-
-#define NUMS_R4_BIT      12
-#define NUMS_R4_MASK     (1 << NUMS_R4_BIT)
-
-#define NUMS_ROWS_GPIO   GPIOA
-#define NUMS_ROWS_CLK    RCU_GPIOA
-#define NUMS_ROWS_MASK   (NUMS_R1_MASK | NUMS_R2_MASK | NUMS_R3_MASK | NUMS_R4_MASK)
-
-#define NUMS_C1_BIT      DIGIT_1_BIT
-#define NUMS_C1_MASK     DIGIT_1_MASK
-
-#define NUMS_C2_BIT      DIGIT_2_BIT
-#define NUMS_C2_MASK     DIGIT_2_MASK
-
-#define NUMS_C3_BIT      DIGIT_3_BIT
-#define NUMS_C3_MASK     DIGIT_3_MASK
-
-#define NUMS_C4_BIT      DIGIT_4_BIT
-#define NUMS_C4_MASK     DIGIT_4_MASK
-
-#define NUMS_COLS_GPIO   DIGITS_GPIO
-#define NUMS_COLS_MASK   (NUMS_C1_MASK | NUMS_C2_MASK | NUMS_C3_MASK | NUMS_C4_MASK)
-
-#define FILTER_LENGTH    16
 
 /* === Private data type declarations ========================================================== */
 
@@ -157,348 +49,127 @@ SPDX-License-Identifier: MIT
 
 /* === Private function declarations =========================================================== */
 
-/*!
-    \brief      delay a time in milliseconds
-    \param[in]  count: count in milliseconds
-    \param[out] none
-    \retval     none
-*/
-void delay_1ms(uint32_t count);
-
 /* === Public variable definitions ============================================================= */
 
 /* === Private variable definitions ============================================================ */
 
-static keyboard_t numeric = NULL;
-
-static uint8_t last_digit = 0;
-
-static uint16_t current_state = 0;
-
 /* === Private function implementation ========================================================= */
 
-void delay_1ms(uint32_t count) {
-    volatile uint64_t start_mtime, delta_mtime;
+static void demo_sdcard(void) {
+    SonidoPlayNote(SONIDO_DO_5, SONIDO_NEGRA);
 
-    volatile uint64_t tmp = SysTimer_GetLoadValue();
-    do {
-        start_mtime = SysTimer_GetLoadValue();
-    } while (start_mtime == tmp);
+    /* LCD initiation handles SPI configuration
+     *  If you don't need the LCD you can check how the LCD initiates SPI in the library */
+    LCD_Init();
+    SonidoPlayNote(SONIDO_RE_5, SONIDO_NEGRA);
 
-    uint64_t delay_ticks = SystemCoreClock / 4; // 1 second
-    delay_ticks = delay_ticks * count / 1000;
+    LCD_Clear(BLACK);
+    SonidoPlayNote(SONIDO_MI_5, SONIDO_NEGRA);
 
-    do {
-        delta_mtime = SysTimer_GetLoadValue() - start_mtime;
-    } while (delta_mtime < delay_ticks);
-}
+    LCD_ShowString(0, 0, "Starting...", WHITE);
+    SonidoPlayNote(SONIDO_FA_5, SONIDO_NEGRA);
 
-uint16_t NumericKeyboardScan(uint8_t column, uint16_t previous_state) {
-    uint16_t result = previous_state;
-    uint8_t value;
+    /* Handle for the mounted filesystem */
+    FATFS fs;
 
-    // gpio_init(NUMS_ROWS_GPIO, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, NUMS_ROWS_MASK);
-    // gpio_init(NUMS_COLS_GPIO, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, NUMS_COLS_MASK);
+    /* FatFs return code */
+    volatile FRESULT fr;
 
-    // switch (column) {
-    // case 1:
-    //     gpio_init(NUMS_COLS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_C2_MASK);
-    //     GPIO_BC(NUMS_COLS_GPIO) = NUMS_C2_MASK;
-    //     break;
-    // case 2:
-    //     gpio_init(NUMS_COLS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_C3_MASK);
-    //     GPIO_BC(NUMS_COLS_GPIO) = NUMS_C3_MASK;
-    //     break;
-    // case 3:
-    //     gpio_init(NUMS_COLS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_C4_MASK);
-    //     GPIO_BC(NUMS_COLS_GPIO) = NUMS_C4_MASK;
-    //     break;
-    // default:
-    //     gpio_init(NUMS_COLS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_C1_MASK);
-    //     GPIO_BC(NUMS_COLS_GPIO) = NUMS_C1_MASK;
-    //     break;
+    /* File handle */
+    FIL fil;
+
+    /* Used for bytes written, and bytes read */
+    // UINT bw = 999;
+    UINT br = 0;
+
+    /* A string to write to file */
+    char buf[128] = "write this to a file\n";
+
+    /* A buffer for storing an image from the SD-card */
+    uint16_t image_buffer[20 * 30] = {0};
+
+    /* For sequencing numbers in loop */
+    uint32_t file_no = 0;
+
+    /* Sets a valid date for when writing to file */
+    set_fattime(1980, 1, 1, 0, 0, 0);
+
+    /* This function "mounts" the SD-card which makes the filesystem available */
+    fr = f_mount(&fs, "", 1); // Mount storage device
+    if (fr != FR_OK) {
+        LCD_ShowString(0, 0, "SD Mount failed", WHITE);
+        while (1); // Stop here if mount fails
+    } else {
+        LCD_ShowString(0, 0, "SD Mount OK", WHITE);
+    }
+    SonidoPlayNote(SONIDO_SOL_5, SONIDO_NEGRA);
+
+    /* This function opens a file. In this case we are creating a file which we want to write to */
+    // fr = f_open(&fil, "file.txt", FA_WRITE);
+
+    /* Write some text to the file */
+    // for (int i = 0; i < 10; i++) fr = f_write(&fil, buf, strlen(buf), &bw);
+
+    // delay_1ms(100);
+
+    /* Close the file */
+    // f_close(&fil); // Close file
+
+    // delay_1ms(500);
+
+    /* Now we open a file for reading. */
+    fr = f_open(&fil, "1.bin", FA_READ);
+
+    /* Read 20x30x2 bytes since the images are 16bit 20x30px. The data is written into "image_buffer" */
+    fr = f_read(&fil, image_buffer, 20 * 30 * 2 + 4, &br);
+    f_close(&fil);
+
+    /* "image_buffer" now contains the image and we just have to display it on the screen */
+    LCD_ShowPicture(19, 16, 38, 45, (u8 *)image_buffer + 4);
+    SonidoPlayNote(SONIDO_LA_5, SONIDO_NEGRA);
+
+    /* The rest follows the same procedure */
+    fr = f_open(&fil, "2.bin", FA_READ);
+    fr = f_read(&fil, image_buffer, 20 * 30 * 2 + 4, &br);
+    f_close(&fil);
+
+    LCD_ShowPicture(39, 16, 58, 45, (u8 *)image_buffer + 4);
+    SonidoPlayNote(SONIDO_SI_5, SONIDO_NEGRA);
+
+    fr = f_open(&fil, "colon.bin", FA_READ);
+    fr = f_read(&fil, image_buffer, 20 * 30 * 2 + 4, &br);
+    f_close(&fil);
+
+    LCD_ShowPicture(59, 16, 78, 45, (u8 *)image_buffer + 4);
+    SonidoPlayNote(SONIDO_DO_6, SONIDO_NEGRA);
+
+    fr = f_open(&fil, "3.bin", FA_READ);
+    fr = f_read(&fil, image_buffer, 20 * 30 * 2 + 4, &br);
+    f_close(&fil);
+
+    LCD_ShowPicture(79, 16, 98, 45, (u8 *)image_buffer + 4);
+    SonidoPlayNote(SONIDO_RE_6, SONIDO_NEGRA);
+
+    /* We can also select the file dynamically */
+    strcpy(buf, "0.bin");
+
+    // while (1) {
+
+    /* buf[0] will have the value '0' - '9' so the string will loop through "0.bin" -> "1.bin" -> ... -> "9.bin" and
+     * so on */
+    buf[0] = file_no + '0';
+    file_no += 1;
+    file_no %= 10;
+
+    fr = f_open(&fil, buf, FA_READ);
+    fr = f_read(&fil, image_buffer, 20 * 30 * 2 + 4, &br);
+    f_close(&fil);
+
+    LCD_ShowPicture(99, 16, 118, 45, (u8 *)image_buffer + 4);
+    SonidoPlayNote(SONIDO_MI_6, SONIDO_BLANCA);
     // }
-    // // delay_1ms(1);
-    // for (int delay = 0; delay < 1000; delay++) {
-    //     __asm__("nop");
-    // }
-
-    // value = (~GPIO_ISTAT(NUMS_ROWS_GPIO) & NUMS_ROWS_MASK) >> NUMS_R1_BIT;
-
-    value = (GPIO_ISTAT(NUMS_ROWS_GPIO) & NUMS_ROWS_MASK) >> NUMS_R1_BIT;
-
-    result &= ~(0x000F << (column * 4));
-    result |= (value << (column * 4));
-    // KeyboardUpdate(numeric, result);
-
-    // gpio_init(NUMS_ROWS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_ROWS_MASK);
-    // gpio_init(NUMS_COLS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_COLS_MASK);
-
-    return result;
 }
 
-void DigitsInit(void) {
-    /* enable the led clock */
-    rcu_periph_clock_enable(DIGITS_CLK);
-
-    /* configure led GPIO port */
-    GPIO_BC(DIGITS_GPIO) = DIGITS_MASK;
-    gpio_init(DIGITS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, DIGITS_MASK);
-}
-
-void SegmentsInit(void) {
-    /* enable the led clock */
-    rcu_periph_clock_enable(SEGMENTS_CLK);
-    rcu_periph_clock_enable(SEGMENT_DOT_CLK);
-
-    /* configure led GPIO port */
-    GPIO_BC(SEGMENTS_GPIO) = SEGMENTS_MASK;
-    GPIO_BC(SEGMENT_DOT_GPIO) = SEGMENT_DOT_MASK;
-    gpio_init(SEGMENTS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, SEGMENTS_MASK);
-    gpio_init(SEGMENT_DOT_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, SEGMENT_DOT_MASK);
-}
-
-void ScreenTurnOff(void) {
-    GPIO_BC(SEGMENTS_GPIO) = SEGMENTS_MASK;
-    GPIO_BC(SEGMENT_DOT_GPIO) = SEGMENT_DOT_MASK;
-
-    if (last_digit == 0) {
-        KeyboardUpdate(numeric, current_state);
-    }
-    current_state = NumericKeyboardScan(last_digit, current_state);
-
-    GPIO_BC(DIGITS_GPIO) = DIGITS_MASK;
-}
-
-void SegmentsTurnOn(uint8_t segments) {
-    GPIO_BC(SEGMENTS_GPIO) = SEGMENTS_MASK;
-    GPIO_BC(SEGMENT_DOT_GPIO) = SEGMENT_DOT_MASK;
-
-    GPIO_BOP(SEGMENTS_GPIO) = (segments << SEGMENT_A_BIT) & SEGMENTS_MASK;
-    if (segments & SEGMENT_P) {
-        GPIO_BOP(SEGMENT_DOT_GPIO) = SEGMENT_DOT_MASK;
-    }
-}
-
-void DigitTurnOn(uint8_t digit) {
-    last_digit = digit;
-
-    GPIO_BC(DIGITS_GPIO) = DIGITS_MASK;
-    GPIO_BOP(DIGITS_GPIO) = ((1 << digit) << DIGIT_1_BIT) & DIGITS_MASK;
-}
-
-uint32_t FunctionKeyboardScan(uint8_t key_count) {
-    uint32_t result = 0;
-
-    result = ((GPIO_ISTAT(KEYS_GPIO) & KEYS_MASK) >> KEY_ACEPT_BIT);
-    return result;
-}
-
-void FunctionKeyboardInit(void) {
-    rcu_periph_clock_enable(KEYS_CLK);
-    gpio_init(KEYS_GPIO, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, KEYS_MASK);
-}
-
-void NumericKeyboardInit(void) {
-    rcu_periph_clock_enable(NUMS_ROWS_CLK);
-    gpio_init(NUMS_ROWS_GPIO, GPIO_MODE_IPD, GPIO_OSPEED_50MHZ, NUMS_ROWS_MASK);
-}
-
-void PruebaColGndRowPullUp(void) {
-    uint16_t resultado;
-    volatile uint32_t valor;
-
-    rcu_periph_clock_enable(SEGMENTS_CLK);
-    rcu_periph_clock_enable(DIGITS_CLK);
-
-    GPIO_BC(NUMS_ROWS_GPIO) = NUMS_ROWS_MASK;
-    GPIO_BC(NUMS_COLS_GPIO) = NUMS_COLS_MASK;
-
-    gpio_init(NUMS_COLS_GPIO, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, NUMS_COLS_MASK);
-
-    while (1) {
-        resultado = 0;
-
-        for (int col = 0; col < 4; col++) {
-            gpio_init(NUMS_ROWS_GPIO, GPIO_MODE_IPD, GPIO_OSPEED_50MHZ, NUMS_ROWS_MASK);
-
-            switch (col) {
-            case 1:
-                // gpio_init(NUMS_COLS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_C2_MASK);
-                // GPIO_BOP(NUMS_COLS_GPIO) = NUMS_C2_MASK;
-                gpio_init(NUMS_ROWS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_R2_MASK);
-                // GPIO_BOP(NUMS_ROWS_GPIO) = NUMS_R2_MASK;
-                break;
-            case 2:
-                // gpio_init(NUMS_COLS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_C3_MASK);
-                // GPIO_BOP(NUMS_COLS_GPIO) = NUMS_C3_MASK;
-                gpio_init(NUMS_ROWS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_R3_MASK);
-                // GPIO_BOP(NUMS_ROWS_GPIO) = NUMS_R3_MASK;
-                break;
-            case 3:
-                // gpio_init(NUMS_COLS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_C4_MASK);
-                // GPIO_BOP(NUMS_COLS_GPIO) = NUMS_C4_MASK;
-                gpio_init(NUMS_ROWS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_R4_MASK);
-                // GPIO_BOP(NUMS_ROWS_GPIO) = NUMS_R4_MASK;
-                break;
-            default:
-                // gpio_init(NUMS_COLS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_C1_MASK);
-                // GPIO_BOP(NUMS_COLS_GPIO) = NUMS_C1_MASK;
-                gpio_init(NUMS_ROWS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_R1_MASK);
-                // GPIO_BOP(NUMS_ROWS_GPIO) = NUMS_R1_MASK;
-                break;
-            }
-            delay_1ms(1);
-
-            // valor = GPIO_ISTAT(NUMS_ROWS_GPIO);
-            // valor &= NUMS_ROWS_MASK;
-            // valor >>= NUMS_R1_BIT;
-
-            valor = GPIO_ISTAT(NUMS_COLS_GPIO);
-            valor &= NUMS_COLS_MASK;
-            valor >>= NUMS_C1_BIT;
-
-            // gpio_init(NUMS_COLS_GPIO, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, NUMS_COLS_MASK);
-            resultado |= (valor << (col * 4));
-        }
-        if (resultado) {
-            LedRgbSetLevel(LED_RGB_CHANNEL_R, 20000);
-        } else {
-            LedRgbSetLevel(LED_RGB_CHANNEL_R, 0);
-        }
-    }
-}
-
-void Prueba2(void) {
-    uint16_t resultado;
-    volatile uint32_t valor;
-
-    rcu_periph_clock_enable(SEGMENTS_CLK);
-    rcu_periph_clock_enable(DIGITS_CLK);
-
-    GPIO_BC(NUMS_ROWS_GPIO) = NUMS_ROWS_MASK;
-    GPIO_BC(NUMS_COLS_GPIO) = NUMS_COLS_MASK;
-
-    while (1) {
-        // resultado = NumericKeyboardScan();
-
-        // if (resultado) {
-        //     LedRgbSetLevel(LED_RGB_CHANNEL_R, 20000);
-        // } else {
-        //     LedRgbSetLevel(LED_RGB_CHANNEL_R, 0);
-        // }
-    }
-
-    gpio_init(NUMS_ROWS_GPIO, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, NUMS_ROWS_MASK);
-
-    while (1) {
-        resultado = 0;
-
-        for (int col = 0; col < 4; col++) {
-            gpio_init(NUMS_COLS_GPIO, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, NUMS_COLS_MASK);
-
-            switch (col) {
-            case 1:
-                gpio_init(NUMS_COLS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_C2_MASK);
-                GPIO_BC(NUMS_COLS_GPIO) = NUMS_C2_MASK;
-                // GPIO_BOP(NUMS_COLS_GPIO) = NUMS_C2_MASK;
-                // gpio_init(NUMS_ROWS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_R2_MASK);
-                // GPIO_BOP(NUMS_ROWS_GPIO) = NUMS_R2_MASK;
-                break;
-            case 2:
-                gpio_init(NUMS_COLS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_C3_MASK);
-                GPIO_BC(NUMS_COLS_GPIO) = NUMS_C3_MASK;
-                // GPIO_BOP(NUMS_COLS_GPIO) = NUMS_C3_MASK;
-                // gpio_init(NUMS_ROWS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_R3_MASK);
-                // GPIO_BOP(NUMS_ROWS_GPIO) = NUMS_R3_MASK;
-                break;
-            case 3:
-                gpio_init(NUMS_COLS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_C4_MASK);
-                GPIO_BC(NUMS_COLS_GPIO) = NUMS_C4_MASK;
-                // GPIO_BOP(NUMS_COLS_GPIO) = NUMS_C4_MASK;
-                // gpio_init(NUMS_ROWS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_R4_MASK);
-                // GPIO_BOP(NUMS_ROWS_GPIO) = NUMS_R4_MASK;
-                break;
-            default:
-                gpio_init(NUMS_COLS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_C1_MASK);
-                GPIO_BC(NUMS_COLS_GPIO) = NUMS_C1_MASK;
-                // GPIO_BOP(NUMS_COLS_GPIO) = NUMS_C1_MASK;
-                // gpio_init(NUMS_ROWS_GPIO, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, NUMS_R1_MASK);
-                // GPIO_BOP(NUMS_ROWS_GPIO) = NUMS_R1_MASK;
-                break;
-            }
-            delay_1ms(1);
-
-            valor = ~GPIO_ISTAT(NUMS_ROWS_GPIO);
-            valor &= NUMS_ROWS_MASK;
-            valor >>= NUMS_R1_BIT;
-
-            // valor = GPIO_ISTAT(NUMS_COLS_GPIO);
-            // valor &= NUMS_COLS_MASK;
-            // valor >>= NUMS_C1_BIT;
-
-            // gpio_init(NUMS_COLS_GPIO, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, NUMS_COLS_MASK);
-            resultado |= (valor << (col * 4));
-        }
-        if (resultado) {
-            LedRgbSetLevel(LED_RGB_CHANNEL_R, 20000);
-        } else {
-            LedRgbSetLevel(LED_RGB_CHANNEL_R, 0);
-        }
-    }
-}
-
-void AnalogInit(void) {
-    /* enable ADC clock */
-    rcu_periph_clock_enable(RCU_ADC0);
-    /* config ADC clock */
-    rcu_adc_clock_config(RCU_CKADC_CKAPB2_DIV8);
-
-    /* reset ADC */
-    adc_deinit(ADC0);
-    /* ADC mode config */
-    adc_mode_config(ADC_MODE_FREE);
-    /* ADC scan function enable */
-    adc_special_function_config(ADC0, ADC_SCAN_MODE, ENABLE);
-    /* ADC data alignment config */
-    adc_data_alignment_config(ADC0, ADC_DATAALIGN_RIGHT);
-    /* ADC temperature and Vrefint enable */
-    adc_tempsensor_vrefint_enable();
-
-    /* ADC channel length config */
-    adc_channel_length_config(ADC0, ADC_INSERTED_CHANNEL, 2);
-
-    /* ADC temperature sensor channel config */
-    adc_inserted_channel_config(ADC0, 0, ADC_CHANNEL_8, ADC_SAMPLETIME_239POINT5);
-    /* ADC internal reference voltage channel config */
-    adc_inserted_channel_config(ADC0, 1, ADC_CHANNEL_9, ADC_SAMPLETIME_239POINT5);
-
-    /* ADC trigger config */
-    adc_external_trigger_source_config(ADC0, ADC_INSERTED_CHANNEL, ADC0_1_EXTTRIG_INSERTED_NONE);
-
-    adc_external_trigger_config(ADC0, ADC_INSERTED_CHANNEL, ENABLE);
-
-    /* enable ADC interface */
-    adc_enable(ADC0);
-    delay_1ms(1);
-    /* ADC calibration and reset calibration */
-    adc_calibration_enable(ADC0);
-}
-
-uint16_t AnalogRead(uint8_t channel) {
-    static uint16_t valores[FILTER_LENGTH][2];
-    static uint8_t siguiente[2];
-    uint32_t acumulador;
-
-    valores[siguiente[channel]][channel] = adc_inserted_data_read(ADC0, channel);
-    siguiente[channel] = (siguiente[channel] + 1) % FILTER_LENGTH;
-
-    acumulador = 0;
-    for (int i = 0; i < FILTER_LENGTH; i++) {
-        acumulador += valores[i][channel];
-    }
-    return acumulador / FILTER_LENGTH;
-}
 /* === Public function implementation ========================================================== */
 
 int main(void) {
@@ -512,31 +183,13 @@ int main(void) {
     uint16_t segundos = 0;
     uint8_t tecla;
 
-    BoardSetup();
-    SonidoInit();
-    // SonidoPlayMelody(ESCALA);
+    board_t board = BoardCreate();
 
-    DigitsInit();
-    SegmentsInit();
-    LedRgbInit(true);
-    FunctionKeyboardInit();
-    NumericKeyboardInit();
-    AnalogInit();
-    // EncoderInit();
-
-    // Prueba2();
-    display_t display = DisplayCreate(4, &(struct display_driver_s){
-                                             .ScreenTurnOff = ScreenTurnOff,
-                                             .SegmentsTurnOn = SegmentsTurnOn,
-                                             .DigitTurnOn = DigitTurnOn,
-                                         });
-
-    keyboard_t functions = KeyboardCreate(6, FunctionKeyboardScan);
-
-    numeric = KeyboardCreate(16, NULL);
-
-    DisplayWriteValue(display, valor);
+    DisplayWriteValue(board->display, valor);
     adc_software_trigger_enable(ADC0, ADC_INSERTED_CHANNEL);
+
+    rtc_demo();
+    demo_sdcard();
 
     while (1) {
         if (divisor == 0) {
@@ -556,10 +209,13 @@ int main(void) {
             if (segundos == 0) {
                 switch (variable) {
                 case 1:
-                    DisplayWriteValue(display, temperatura);
+                    DisplayWriteValue(board->display, temperatura);
                     break;
                 case 2:
-                    DisplayWriteValue(display, luminosidad);
+                    DisplayWriteValue(board->display, luminosidad);
+                    break;
+                case 3:
+                    DisplayWriteValue(board->display, EncoderReadValue());
                     break;
                 }
             }
@@ -569,59 +225,60 @@ int main(void) {
         contador = (contador + 1) % 50;
         if (contador == 0) {
 
-            if (KeyboardScan(functions)) {
-                if (KeyboardChangeToPressed(functions, 2)) {
+            if (KeyboardScan(board->functions)) {
+                if (KeyboardChangeToPressed(board->functions, 2)) {
                     valor = (valor + 1000) % 10000;
                     variable = 0;
                     SonidoPlayNote(SONIDO_DO_6, SONIDO_NEGRA);
                 }
-                if (KeyboardChangeToPressed(functions, 3)) {
+                if (KeyboardChangeToPressed(board->functions, 3)) {
                     valor = (valor + 100) % 10000;
                     variable = 0;
                     SonidoPlayNote(SONIDO_MI_6, SONIDO_NEGRA);
                 }
-                if (KeyboardChangeToPressed(functions, 4)) {
+                if (KeyboardChangeToPressed(board->functions, 4)) {
                     valor = (valor + 10) % 10000;
                     variable = 0;
                     SonidoPlayNote(SONIDO_SOL_6, SONIDO_NEGRA);
                 }
-                if (KeyboardChangeToPressed(functions, 5)) {
+                if (KeyboardChangeToPressed(board->functions, 5)) {
                     valor = (valor + 1) % 10000;
                     variable = 0;
                     SonidoPlayNote(SONIDO_SI_6, SONIDO_NEGRA);
                 }
-                if (KeyboardChangeToPressed(functions, 0)) {
+                if (KeyboardChangeToPressed(board->functions, 0)) {
                     // valor = 9999;
-                    variable = 2;
+                    variable = 1;
                     segundos = 0;
                     SonidoPlayMelody(LA_CUCARACHA);
                 }
-                if (KeyboardChangeToPressed(functions, 1)) {
+                if (KeyboardChangeToPressed(board->functions, 1)) {
                     // valor = 0;
-                    variable = 1;
+                    variable = 2;
                     segundos = 0;
+                    SonidoPlayMelody(QUINTA);
+                }
+                if (KeyboardChangeToPressed(board->functions, 6)) {
+                    // valor = 0;
+                    variable = 3;
                     SonidoPlayMelody(ESCALA);
                 }
                 if (variable == 0) {
-                    DisplayWriteValue(display, valor);
+                    DisplayWriteValue(board->display, valor);
                 }
             }
         }
 
-        if (KeyboardScan(numeric)) {
-            tecla = KeyboardGetFirstPressed(numeric);
+        if (KeyboardScan(board->numeric)) {
+            tecla = KeyboardGetFirstPressed(board->numeric);
             if (tecla != 0xFF) {
                 valor = tecla + 1;
                 variable = 0;
             }
-            DisplayWriteValue(display, valor);
+            DisplayWriteValue(board->display, valor);
         }
-        // if (EncoderHasChanged()) {
-        //     variable = 3;
-        //     DisplayWriteValue(display, EncoderReadValue());
-        // }
 
-        DisplayRefresh(display);
+        DisplayRefresh(board->display);
 
         delay_1ms(1);
     }

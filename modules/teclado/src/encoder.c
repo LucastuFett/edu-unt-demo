@@ -36,8 +36,8 @@ SPDX-License-Identifier: MIT
 
 /* === Macros definitions ====================================================================== */
 
-#define ENCODER_TIMER     TIMER2
-#define ENCODER_TIMER_CLK RCU_TIMER2
+#define ENCODER_TIMER     TIMER3
+#define ENCODER_TIMER_CLK RCU_TIMER3
 
 /* === Private data type declarations ========================================================== */
 
@@ -56,8 +56,8 @@ SPDX-License-Identifier: MIT
 void EncoderInit(void) {
     rcu_periph_clock_enable(RCU_AF);
 
-    gpio_pin_remap_config(GPIO_SWJ_NONJTRST_REMAP, ENABLE);
-    gpio_pin_remap_config(GPIO_TIMER2_PARTIAL_REMAP, ENABLE);
+    // gpio_pin_remap_config(GPIO_SWJ_NONJTRST_REMAP, ENABLE);
+    // gpio_pin_remap_config(GPIO_TIMER2_PARTIAL_REMAP, ENABLE);
 
     rcu_periph_clock_enable(ENCODER_TIMER_CLK);
 

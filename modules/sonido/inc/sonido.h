@@ -94,6 +94,8 @@ extern const sonido_nota_t LA_CUCARACHA[];
 
 extern const sonido_nota_t ESCALA[];
 
+extern const sonido_nota_t QUINTA[];
+
 /* === Public function declarations ============================================================ */
 
 void SonidoInit(void);

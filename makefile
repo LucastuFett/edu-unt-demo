@@ -23,7 +23,8 @@
 # SPDX-License-Identifier: MIT
 ##################################################################################################
 
-BOARD = longan-nano
+MODULES = modules/bsp modules/led modules/sonido modules/pantalla modules/teclado modules/fatfs modules/ssd1306
+BOARD = edu-unt-rv
 MUJU = ./muju
 
 DAP = cmsis-dap
