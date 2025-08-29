@@ -1,0 +1,23 @@
+
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug (RISC V)",
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "program": "./build/bin/project.elf",
+            "miDebuggerPath": "${userHome}/.local/xPacks/@xpack-dev-tools/riscv-none-elf-gcc/14.2.0-3.1/.content/bin/riscv-none-elf-gdb",
+            "useExtendedRemote": true,
+            "miDebuggerServerAddress": "localhost:3333",
+            "stopAtEntry": false,
+            "postRemoteConnectCommands": [
+                {
+                    "text": "load"
+                }
+            ]
+        },
+    ],
+    "compounds": []
+}
