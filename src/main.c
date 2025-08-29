@@ -188,8 +188,8 @@ int main(void) {
     DisplayWriteValue(board->display, valor);
     adc_software_trigger_enable(ADC0, ADC_INSERTED_CHANNEL);
 
-    rtc_demo();
-    demo_sdcard();
+    //rtc_demo();
+    //demo_sdcard();
 
     while (1) {
         if (divisor == 0) {
